@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% set active = "companies" %}
+{% block title %}Companies · JobScraper{% endblock %}
+{% block content %}
+<div class="page-head">
+  <hgroup>
+    <h1>Companies</h1>
+    <p>{{ summary.total }} tracked · {{ summary.favorites }} favorite · {{ summary.hidden }} hidden
+      {% if summary.attention %}· <span class="text-warn">{{ summary.attention }} need attention</span>{% endif %}</p>
+  </hgroup>
+  <a href="/radar" role="button" class="outline">Find more on Radar →</a>
+</div>
+
+<p class="hint">
+  <strong>★ Favorite</strong> companies can be filtered to on the Jobs page.
+  <strong>Hidden</strong> companies are still refreshed, but their jobs stay out of the default Jobs view.
+</p>
+
+<div class="table-wrap">
+  <table class="companies">
+    <thead>
+      <tr>
+        <th>Company</th>
+        <th>Preference</th>
+        <th class="num">Local jobs</th>
+        <th class="num">Matches</th>
+        <th>Health</th>
+        <th>Notes</th>
+        <th><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody id="company-rows">
+      {% for row in rows %}
+        {% include "partials/company_row.html" %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<details class="add-company" id="add-company">
+  <summary>Add a company by hand</summary>
+  <p class="hint">Use <code>python -m app.detect_ats "Name" domain.com</code> or the Radar page to find the ATS and slug.</p>
+  <form hx-post="/companies" hx-target="#add-result" hx-disabled-elt="find button">
+    <div class="grid">
+      <input name="name" placeholder="Company name" required value="{{ prefill.name or '' }}">
+      <select name="source" required>
+        {% for s in sources %}<option value="{{ s.value }}">{{ s.value }}</option>{% endfor %}
+      </select>
+      <input name="ats_slug" placeholder="ATS slug, e.g. micron/wd1/External" required>
+    </div>
+    <div class="grid">
+      <input name="careers_url" placeholder="Careers page URL (optional)">
+      <input name="location_aliases" placeholder="Location alias regex (optional)">
+      <button type="submit">Add &amp; refresh</button>
+    </div>
+  </form>
+  <div id="add-result"></div>
+</details>
+{% endblock %}

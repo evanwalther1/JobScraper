@@ -1,0 +1,41 @@
+{% set c = row.c %}
+<tr id="company-{{ c.id }}" class="pref-{{ c.preference.value }}{% if not c.active %} is-inactive{% endif %}">
+  <td class="company-cell">
+    <div class="company-name">
+      {% if c.preference.value == "favorite" %}<span class="star">★</span>{% endif %}
+      <a href="/?company={{ c.name | urlencode }}&view=all&companies_view=all">{{ c.name }}</a>
+    </div>
+    <div class="job-meta">
+      <span class="ats">{{ c.source.value }}</span>
+      {% if c.careers_url %}<span class="dot">·</span><a href="{{ c.careers_url }}" target="_blank" rel="noopener noreferrer">careers &#8599;&#xFE0E;</a>{% endif %}
+      {% if not c.active %}<span class="dot">·</span><span class="badge status-dismissed">Paused</span>{% endif %}
+    </div>
+  </td>
+  <td>
+    <div class="segmented" role="group" aria-label="Preference for {{ c.name }}">
+      {% for value, label in [("favorite", "★"), ("normal", "Normal"), ("hidden", "Hide")] %}
+      <button class="seg {% if c.preference.value == value %}on seg-{{ value }}{% endif %}"
+              hx-post="/companies/{{ c.id }}/preference" hx-vals='{"preference": "{{ value }}"}'
+              hx-target="closest tr" hx-swap="outerHTML"
+              title="{{ {'favorite': 'Favorite', 'normal': 'Normal', 'hidden': 'Hide its jobs by default'}[value] }}">{{ label }}</button>
+      {% endfor %}
+    </div>
+  </td>
+  <td class="num">{{ row.open }}</td>
+  <td class="num">{% if row.matches %}<a href="/?company={{ c.name | urlencode }}&companies_view=all"><strong>{{ row.matches }}</strong></a>{% else %}0{% endif %}</td>
+  <td>
+    <span class="health health-{{ row.health.css }}" title="{{ row.health.detail }}">{{ row.health.label }}</span>
+    {% if c.last_success_at %}<div class="job-meta">refreshed {{ c.last_success_at | ago }}</div>{% endif %}
+    {% if row.health.detail and row.health.css in ("error", "warn") %}<div class="health-detail">{{ row.health.detail }}</div>{% endif %}
+  </td>
+  <td>
+    <textarea name="notes" rows="1" aria-label="Notes for {{ c.name }}" placeholder="Notes…"
+              hx-post="/companies/{{ c.id }}/notes" hx-trigger="change" hx-swap="none">{{ c.notes or "" }}</textarea>
+  </td>
+  <td class="row-actions">
+    <button class="btn-sm outline secondary" hx-post="/companies/{{ c.id }}/refresh" hx-target="closest tr" hx-swap="outerHTML"
+            hx-disabled-elt="this" hx-on::before-request="this.setAttribute('aria-busy', 'true')">Refresh</button>
+    <button class="btn-sm link-btn" hx-post="/companies/{{ c.id }}/active" hx-target="closest tr" hx-swap="outerHTML">
+      {{ "Resume" if not c.active else "Pause" }}</button>
+  </td>
+</tr>

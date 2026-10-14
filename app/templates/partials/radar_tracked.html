@@ -1,0 +1,13 @@
+<tr class="tracked-row">
+  <td colspan="6">
+    {% if result.ok %}
+      ✓ <strong>Now tracking {{ name }}</strong>: {{ result.open }} local job{{ "" if result.open == 1 else "s" }} found
+      ({{ result.fetched }} fetched).
+      {% if result.open == 0 %}<span class="hint">If they're local, the board may label locations differently; add a
+      location alias on the <a href="/companies">Companies page</a>.</span>{% endif %}
+    {% else %}
+      <strong>Added {{ name }}, but the first refresh failed:</strong> <span class="error">{{ result.error }}</span>
+      <span class="hint">The detected slug may be wrong: pause it on the <a href="/companies">Companies page</a> and add it by hand with the right slug.</span>
+    {% endif %}
+  </td>
+</tr>

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}JobScraper{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <nav class="container">
+      <ul>
+        <li><a href="/" class="brand">JobScraper</a></li>
+        <li class="region">Treasure Valley</li>
+      </ul>
+      <ul>
+        <li><a href="/" {% if active == "jobs" %}aria-current="page"{% endif %}>Jobs</a></li>
+        <li><a href="/applications" {% if active == "applications" %}aria-current="page"{% endif %}>Applications</a></li>
+        <li><a href="/companies" {% if active == "companies" %}aria-current="page"{% endif %}>Companies</a></li>
+        <li><a href="/radar" {% if active == "radar" %}aria-current="page"{% endif %}>Radar</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

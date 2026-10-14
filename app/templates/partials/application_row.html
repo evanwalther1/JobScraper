@@ -1,0 +1,28 @@
+<tr id="app-{{ a.id }}">
+  <td class="job-cell">
+    <a class="job-title" href="{{ a.job.url }}" target="_blank" rel="noopener noreferrer">{{ a.job.title }} &#8599;&#xFE0E;</a>
+    <div class="job-meta"><strong>{{ a.job.company_name }}</strong>{% if a.job.location %}<span class="dot">·</span>{{ a.job.location }}{% endif %}</div>
+    {% if a.job.closed_at %}<span class="badge badge-closed">Posting closed {{ a.job.closed_at | ago }}</span>{% endif %}
+  </td>
+  <td>
+    <select name="status" class="status-select status-{{ a.status.value }}" aria-label="Status"
+            hx-post="/applications/{{ a.id }}" hx-target="closest tr" hx-swap="outerHTML">
+      {% for s in ALL_STATUSES %}
+      <option value="{{ s.value }}" {% if s == a.status %}selected{% endif %}>{{ s.value | capitalize }}</option>
+      {% endfor %}
+    </select>
+  </td>
+  <td>
+    <input type="date" name="applied_at" aria-label="Applied date"
+           value="{{ a.applied_at.strftime('%Y-%m-%d') if a.applied_at else '' }}"
+           hx-post="/applications/{{ a.id }}" hx-trigger="change" hx-swap="none">
+  </td>
+  <td>
+    <textarea name="notes" rows="2" aria-label="Notes" placeholder="Recruiter, referral, next steps…"
+              hx-post="/applications/{{ a.id }}" hx-trigger="change" hx-swap="none">{{ a.notes or "" }}</textarea>
+  </td>
+  <td class="row-actions">
+    <button class="btn-sm link-btn" hx-delete="/applications/{{ a.id }}" hx-target="closest tr" hx-swap="outerHTML"
+            hx-confirm="Stop tracking this job? It will go back to the Jobs list.">Remove</button>
+  </td>
+</tr>

@@ -1,0 +1,14 @@
+<article class="refresh-result {% if not result.ok %}has-errors{% endif %}">
+  <div>
+    {% if result.ok %}
+      <strong>Added {{ name }}.</strong> {{ result.open }} local job{{ "" if result.open == 1 else "s" }} found
+      ({{ result.fetched }} fetched). <a href="/companies">Reload the list</a> to see it.
+      {% if result.open == 0 %}<div class="hint">0 local jobs? If the company is local, its board may label locations
+      differently. Add a location alias regex.</div>{% endif %}
+    {% else %}
+      <strong>Added {{ name }}, but the first refresh failed:</strong>
+      <div class="error">{{ result.error }}</div>
+      <div class="hint">Check the ATS and slug. The company's row will show it as Failing.</div>
+    {% endif %}
+  </div>
+</article>

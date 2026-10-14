@@ -1,0 +1,53 @@
+name,domain,category,ats,status,notes
+Idaho Power,idahopower.com,utility,workday,added,
+Blue Cross of Idaho,bcidaho.com,healthcare,workday,added,location alias for "Meridian - Main"
+Saint Alphonsus Health System,saintalphonsus.org,healthcare,workday,added,Trinity Health tenant
+Lamb Weston,lambweston.com,manufacturing,workday,added,HQ in Eagle
+KLA,kla.com,semiconductor,workday,added,filtered via State=Idaho
+Sparklight,sparklight.com,telecom,workday,added,Cable One tenant
+Moss Adams,mossadams.com,finance,workday,added,merged into Baker Tilly
+City of Meridian,meridiancity.org,government,workday,added,all jobs local (alias ".")
+Kount,kount.com,software,workday,added,Equifax tenant
+T-Mobile,t-mobile.com,telecom,workday,added,
+Applied Materials,appliedmaterials.com,semiconductor,workday,added,
+Idaho Central Credit Union,iccu.com,finance,ukg,added,
+Boise Cascade,bc.com,manufacturing,ukg,added,
+Western States Cat,westernstatescat.com,manufacturing,ukg,added,
+Intermountain Gas,intgas.com,utility,ukg,added,MDU board; 0 jobs listed when added
+Washington Trust Bank,watrust.com,finance,ukg,added,
+Scentsy,scentsy.com,retail,paylocity,added,
+Ednetics,ednetics.com,it-services,paylocity,added,0 jobs listed when added
+Syringa Networks,syringanetworks.net,it-services,paylocity,added,
+Northwest Nazarene University,nnu.edu,education,paylocity,added,
+City of Boise,cityofboise.org,government,neogov,needs connector,governmentjobs.com/careers/boiseid
+Ada County,adacounty.id.gov,government,neogov,needs connector,governmentjobs.com/careers/adacounty
+State of Idaho,dhr.idaho.gov,government,neogov,needs connector,governmentjobs.com/careers/issc (includes state IT jobs)
+Albertsons Companies,albertsonscompanies.com,retail,oracle,added,Oracle Recruiting Cloud (30-mile radius around Boise)
+WinCo Foods,wincofoods.com,retail,icims,needs connector,iCIMS (slug not confirmed)
+Lam Research,lamresearch.com,semiconductor,eightfold,needs connector,lamresearch.eightfold.ai
+PetIQ,petiq.com,healthcare,adp,needs connector,myjobs.adp.com/petiqcorp
+PakEnergy,pakenergy.com,software,paycor,needs connector,
+CapEd Credit Union,capedcu.com,finance,paycom,needs connector,
+Healthwise,healthwise.org,software,jobvite,needs connector,WebMD Ignite (jobs.jobvite.com/webmd)
+MWI Animal Health,mwiah.com,healthcare,phenom,needs connector,Cencora careers site
+Boise State University,boisestate.edu,education,,unknown,"not Workday (bsu = Ball State)"
+ClickBank,clickbank.com,software,,unknown,
+WhiteCloud Analytics,whitecloudanalytics.com,software,,unknown,
+MetaGeek,metageek.com,software,,unknown,
+Cradlepoint,cradlepoint.com,software,,unknown,Ericsson careers
+Bodybuilding.com,bodybuilding.com,software,,unknown,
+Intuit,intuit.com,software,,unknown,jobs.intuit.com (custom)
+Lumen Technologies,lumen.com,telecom,,unknown,
+PCS Edventures,pcsedu.com,edtech,,unknown,
+J.R. Simplot,simplot.com,manufacturing,,unknown,
+Packaging Corporation of America,packagingcorp.com,manufacturing,,unknown,
+American Semiconductor,americansemi.com,semiconductor,,unknown,
+Tokyo Electron,tel.com,semiconductor,,unknown,
+ASML,asml.com,semiconductor,,unknown,
+St. Luke's Health System,stlukesonline.org,healthcare,,unknown,
+Primary Health Medical Group,primaryhealth.com,healthcare,,unknown,
+Eide Bailly,eidebailly.com,finance,,unknown,
+Western Aircraft,westair.com,aviation,,unknown,
+College of Western Idaho,cwi.edu,education,,unknown,
+West Ada School District,westada.org,education,,unknown,
+Boise School District,boiseschools.org,education,,unknown,

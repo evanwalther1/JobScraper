@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% set active = "jobs" %}
+{% block title %}Jobs · JobScraper{% endblock %}
+{% block content %}
+<div class="page-head">
+  <hgroup>
+    <h1>Jobs</h1>
+    <p>Entry-level tech roles in the Treasure Valley</p>
+  </hgroup>
+  <button class="outline"
+          hx-post="/refresh" hx-target="#refresh-result" hx-disabled-elt="this"
+          hx-on::before-request="this.setAttribute('aria-busy', 'true'); this.textContent = 'Refreshing…'"
+          hx-on::after-request="this.removeAttribute('aria-busy'); this.textContent = 'Refresh jobs'">Refresh jobs</button>
+</div>
+
+<div id="refresh-result"></div>
+
+<form class="filters" hx-get="/" hx-target="#job-list" hx-push-url="true"
+      hx-trigger="input delay:300ms">
+  <input type="search" name="q" value="{{ filters.q }}" placeholder="Search title, company, or location" aria-label="Search">
+  <select name="company" aria-label="Company">
+    <option value="">All companies</option>
+    {% for name, pref in companies %}
+    <option value="{{ name }}" {% if name == filters.company %}selected{% endif %}>{{ "★ " if pref.value == "favorite" }}{{ name }}{{ " (hidden)" if pref.value == "hidden" }}</option>
+    {% endfor %}
+  </select>
+  <select name="view" aria-label="Relevance">
+    {% for value, label in [("match", "Relevant"), ("senior", "Hidden: senior"), ("non_tech", "Hidden: non-tech"), ("all", "Everything")] %}
+    <option value="{{ value }}" {% if value == filters.view %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="companies_view" aria-label="Which companies">
+    {% for value, label in [("", "All but hidden companies"), ("favorites", "Favorite companies only"), ("all", "Include hidden companies")] %}
+    <option value="{{ value }}" {% if value == filters.companies_view %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <label class="toggle">
+    <input type="checkbox" role="switch" name="hide_tracked" value="true" {% if filters.hide_tracked %}checked{% endif %}>
+    Hide tracked
+  </label>
+</form>
+
+<div id="job-list" hx-get="/" hx-include=".filters" hx-trigger="jobs-changed from:body">
+  {% include "partials/job_list.html" %}
+</div>
+{% endblock %}

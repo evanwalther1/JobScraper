@@ -1,0 +1,46 @@
+{% set a = job.application %}
+{% set hidden = job.relevance and job.relevance.value != "match" %}
+<article class="job-card{% if hidden %} is-hidden{% endif %}" id="job-{{ job.id }}">
+  <div class="job-top">
+    <div class="job-body">
+      <div class="job-title-row">
+        <a class="job-title" href="{{ job.url }}" target="_blank" rel="noopener noreferrer">{{ job.title }}</a>
+        {% if job.first_seen_at > new_since %}<span class="badge badge-new">New</span>{% endif %}
+        {% if a %}<span class="badge status-{{ a.status.value }}">{{ a.status.value | capitalize }}</span>{% endif %}
+      </div>
+      <p class="job-meta">
+        {% if job.company.preference.value == "favorite" %}<span class="star" title="Favorite company">★</span>{% endif %}
+        <strong>{{ job.company_name }}</strong>
+        {% if job.location %}<span class="dot">·</span>{{ job.location }}{% endif %}
+        {% if job.posted_at %}<span class="dot">·</span>Posted {{ job.posted_at | ago }}{% endif %}
+      </p>
+      {% if hidden %}
+      <p class="hidden-reason">Hidden as {{ "senior" if job.relevance.value == "senior" else "non-tech" }}: {{ job.relevance_reason }}</p>
+      {% endif %}
+    </div>
+
+    <div class="job-actions">
+      {% if not a or a.status.value == "saved" %}
+        <button class="btn-sm link-btn" hx-post="/jobs/{{ job.id }}/status" hx-vals='{"status": "dismissed"}'
+                hx-target="closest article" hx-swap="outerHTML" title="Hide this job">Not interested</button>
+      {% endif %}
+      <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" role="button" class="btn-sm secondary outline">View posting &#8599;&#xFE0E;</a>
+      {% if not a %}
+        <button class="btn-sm outline" hx-post="/jobs/{{ job.id }}/status" hx-vals='{"status": "saved"}'
+                hx-target="closest article" hx-swap="outerHTML">Save</button>
+      {% endif %}
+      {% if not a or a.status.value == "saved" %}
+        <button class="btn-sm" hx-post="/jobs/{{ job.id }}/status" hx-vals='{"status": "applied"}'
+                hx-target="closest article" hx-swap="outerHTML">Mark applied</button>
+      {% else %}
+        <a href="/applications" class="btn-sm outline" role="button">View in tracker →</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <details class="job-details" hx-get="/jobs/{{ job.id }}/description" hx-trigger="toggle once"
+           hx-target="find .description" hx-swap="outerHTML">
+    <summary>Description</summary>
+    <div class="description" aria-busy="true"></div>
+  </details>
+</article>

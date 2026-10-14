@@ -9,4 +9,5 @@ load_dotenv()
 DATABASE_URL = os.environ["DATABASE_URL"]
 
 engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine)
+# expire_on_commit=False: objects stay readable after commit (we log them afterwards).
+SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)

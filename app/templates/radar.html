@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% set active = "radar" %}
+{% block title %}Radar · JobScraper{% endblock %}
+{% block content %}
+<div class="page-head">
+  <hgroup>
+    <h1>Radar</h1>
+    <p>Employers posting tech jobs near Boise that we don't track yet (via Adzuna)</p>
+  </hgroup>
+  <button class="outline" hx-post="/radar/run" hx-swap="none" hx-disabled-elt="this"
+          hx-on::before-request="this.setAttribute('aria-busy', 'true'); this.textContent = 'Scanning… (a few minutes)'">Run radar</button>
+</div>
+
+{% if cov.run_at %}
+<div class="stats">
+  <article class="stat">
+    <div class="stat-value">{{ cov.pct if cov.pct is not none else "–" }}%</div>
+    <div class="stat-label">Coverage</div>
+    <div class="stat-detail">{{ cov.covered }} of {{ cov.relevant }} relevant local postings come from companies we track
+      ({{ cov.remote_skipped }} remote-looking postings not counted)</div>
+  </article>
+  <article class="stat">
+    <div class="stat-value">{{ rows | length if not show_all else rows | selectattr("relevant") | list | length }}</div>
+    <div class="stat-label">Companies to review</div>
+    <div class="stat-detail">untracked, with relevant local postings</div>
+  </article>
+  <article class="stat">
+    <div class="stat-value">{{ cov.postings }}</div>
+    <div class="stat-label">Local postings scanned</div>
+    <div class="stat-detail">last run {{ cov.run_at | ago }}{% if cov.ignored %} · {{ cov.ignored }} relevant from ignored companies{% endif %}</div>
+  </article>
+</div>
+{% else %}
+<article class="empty"><strong>The radar hasn't run yet.</strong><p>Click <em>Run radar</em> to scan Adzuna for Boise-area tech postings.</p></article>
+{% endif %}
+
+{% if payoff %}
+<details class="payoff" open>
+  <summary><strong>Connector payoff</strong>: ATSes we don't support yet, among the companies below</summary>
+  <table class="compact">
+    <thead><tr><th>ATS</th><th class="num">Companies</th><th class="num">Relevant postings</th><th>Who</th></tr></thead>
+    <tbody>
+      {% for ats, info in payoff %}
+      <tr><td><span class="ats">{{ ats }}</span></td><td class="num">{{ info.companies | length }}</td>
+          <td class="num">{{ info.relevant }}</td><td class="muted">{{ info.companies | join(", ") }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</details>
+{% endif %}
+
+{% if rows %}
+<div class="table-wrap">
+  <table class="radar">
+    <thead>
+      <tr>
+        <th>Company</th>
+        <th class="num">Relevant</th>
+        <th class="num">Local</th>
+        <th>Example postings</th>
+        <th>ATS</th>
+        <th><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        {% include "partials/radar_row.html" %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% if hidden_count and not show_all %}
+<p class="hint">{{ hidden_count }} more untracked companies have local postings, but none that look relevant.
+  <a href="/radar?show_all=true">Show them</a>.</p>
+{% elif show_all %}
+<p class="hint"><a href="/radar">Show only companies with relevant postings</a>.</p>
+{% endif %}
+
+{% if ignored %}
+<details class="ignored-list">
+  <summary>Ignored companies ({{ ignored | length }})</summary>
+  <ul>
+    {% for r in ignored %}
+    <li>{{ r.rc.display_name }}
+      <button class="btn-sm link-btn" hx-post="/radar/ignore" hx-vals='{"key": "{{ r.rc.key }}", "ignored": "false"}'
+              hx-target="closest li" hx-swap="outerHTML">Un-ignore</button></li>
+    {% endfor %}
+  </ul>
+</details>
+{% endif %}
+
+<datalist id="tracked-companies">
+  {% for c in tracked %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+</datalist>
+{% endblock %}

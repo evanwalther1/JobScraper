@@ -1,0 +1,10 @@
+<article class="refresh-result {% if summary.failed %}has-errors{% endif %}">
+  <div>
+    <strong>Refreshed {{ summary.ok }} compan{{ "y" if summary.ok == 1 else "ies" }}.</strong>
+    {{ summary.new }} new job{{ "" if summary.new == 1 else "s" }}, {{ summary.closed }} closed.
+    {% for r in results if not r.ok %}
+      <div class="error">{{ r.company }} failed: {{ r.error }}</div>
+    {% endfor %}
+  </div>
+  <button class="btn-sm link-btn" onclick="this.closest('article').remove()" aria-label="Dismiss">✕</button>
+</article>

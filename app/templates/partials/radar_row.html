@@ -1,0 +1,50 @@
+{% set rc = r.rc %}
+<tr id="radar-{{ loop.index if loop is defined else 0 }}">
+  <td class="company-cell">
+    <div class="company-name">{{ rc.display_name }}</div>
+    <div class="job-meta">
+      {% if rc.domain %}<a href="https://{{ rc.domain }}" target="_blank" rel="noopener noreferrer">{{ rc.domain }} &#8599;&#xFE0E;</a>{% else %}no domain found{% endif %}
+    </div>
+  </td>
+  <td class="num">{% if r.relevant %}<strong>{{ r.relevant }}</strong>{% else %}0{% endif %}</td>
+  <td class="num">{{ r.local }}</td>
+  <td class="samples">
+    {% for p in r.samples %}
+      <div><a href="{{ p.redirect_url }}" target="_blank" rel="noopener noreferrer">{{ p.title }}</a>
+        <span class="muted">· {{ p.location }}</span></div>
+    {% endfor %}
+  </td>
+  <td>
+    {% if r.supported %}
+      <span class="badge status-offer">{{ rc.detected_ats }}</span>
+      <div class="job-meta slug" title="{{ rc.detected_slug }}">{{ rc.detected_slug }}</div>
+    {% elif rc.detected_ats %}
+      <span class="badge status-interviewing" title="We don't have a connector for this ATS yet">{{ rc.detected_ats }}: needs connector</span>
+    {% elif rc.detected_at %}
+      <span class="badge status-dismissed">not detected</span>
+    {% else %}
+      <span class="muted">not checked</span>
+    {% endif %}
+  </td>
+  <td class="row-actions radar-actions">
+    {% if r.supported %}
+      <button class="btn-sm" hx-post="/radar/track" hx-vals='{"key": "{{ rc.key }}"}' hx-target="closest tr" hx-swap="outerHTML"
+              hx-disabled-elt="this" hx-on::before-request="this.setAttribute('aria-busy', 'true')">Add &amp; track</button>
+    {% endif %}
+    <details class="row-more">
+      <summary>More</summary>
+      <form hx-post="/radar/detect" hx-target="closest tr" hx-swap="outerHTML" hx-disabled-elt="find button">
+        <input type="hidden" name="key" value="{{ rc.key }}">
+        <input name="domain" value="{{ rc.domain or '' }}" placeholder="company.com" aria-label="Domain">
+        <button class="btn-sm outline" type="submit">Detect ATS</button>
+      </form>
+      <form hx-post="/radar/link" hx-target="closest tr" hx-swap="outerHTML">
+        <input type="hidden" name="key" value="{{ rc.key }}">
+        <input name="company_id" list="tracked-companies" placeholder="Same as tracked company… (pick)" aria-label="Link to tracked company" required>
+        <button class="btn-sm outline secondary" type="submit">Link</button>
+      </form>
+    </details>
+    <button class="btn-sm link-btn" hx-post="/radar/ignore" hx-vals='{"key": "{{ rc.key }}", "ignored": "true"}'
+            hx-target="closest tr" hx-swap="outerHTML" title="Not interested in this company">Ignore</button>
+  </td>
+</tr>

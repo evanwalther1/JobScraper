@@ -1,0 +1,8 @@
+<div class="description">
+  {% if job.description_html %}
+    <div class="prose">{{ job.description_html | safe_html | safe }}</div>
+  {% else %}
+    <p class="muted">No description stored for this job.</p>
+  {% endif %}
+  <p><a href="{{ job.url }}" target="_blank" rel="noopener noreferrer">Open the full posting &#8599;&#xFE0E;</a></p>
+</div>

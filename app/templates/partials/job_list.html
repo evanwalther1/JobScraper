@@ -1,0 +1,9 @@
+<p class="result-count">{{ jobs | length }} job{{ "" if jobs | length == 1 else "s" }}</p>
+{% for job in jobs %}
+  {% include "partials/job_card.html" %}
+{% else %}
+  <article class="empty">
+    <strong>No jobs match these filters.</strong>
+    <p>Try clearing the search, or switch to "Everything" to include jobs the relevance filter hid.</p>
+  </article>
+{% endfor %}

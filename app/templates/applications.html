@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% set active = "applications" %}
+{% block title %}Applications · JobScraper{% endblock %}
+{% block content %}
+<div class="page-head">
+  <hgroup>
+    <h1>Applications</h1>
+    <p>{{ total }} job{{ "" if total == 1 else "s" }} tracked</p>
+  </hgroup>
+</div>
+
+<nav class="status-tabs" aria-label="Filter by status">
+  <a href="/applications" class="tab {% if not active_status %}active{% endif %}">All <span class="count">{{ total }}</span></a>
+  {% for s in ALL_STATUSES %}
+  <a href="/applications?status={{ s.value }}" class="tab tab-{{ s.value }} {% if active_status == s.value %}active{% endif %}">
+    {{ s.value | capitalize }} <span class="count">{{ counts.get(s, 0) }}</span>
+  </a>
+  {% endfor %}
+</nav>
+
+{% if apps %}
+<div class="table-wrap">
+  <table class="apps">
+    <thead>
+      <tr>
+        <th>Job</th>
+        <th>Status</th>
+        <th>Applied</th>
+        <th>Notes</th>
+        <th><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in apps %}
+        {% include "partials/application_row.html" %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<article class="empty">
+  <strong>{% if active_status %}No {{ active_status }} jobs.{% else %}Nothing tracked yet.{% endif %}</strong>
+  <p>Use <em>Save</em> or <em>Mark applied</em> on the <a href="/">Jobs page</a> to start tracking.</p>
+</article>
+{% endif %}
+{% endblock %}
