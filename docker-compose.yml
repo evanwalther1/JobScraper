@@ -1,3 +1,4 @@
+# One command runs everything:   docker compose up --build   then open http://localhost:8000
 services:
   db:
     image: postgres:16
@@ -7,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jobs}
       POSTGRES_DB: ${POSTGRES_DB:-jobs}
     ports:
-      - "5432:5432"
+      - "5432:5432"  # also reachable from the host (VS Code extension, local scripts)
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -15,6 +16,24 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy  # wait until Postgres accepts connections
+    env_file: .env  # Adzuna keys etc.
+    environment:
+      # Inside Docker's network the database host is the service name "db", not localhost.
+      # This overrides the DATABASE_URL in .env (python-dotenv never overrides real env vars).
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-jobs}:${POSTGRES_PASSWORD:-jobs}@db:5432/${POSTGRES_DB:-jobs}
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount the code so edits show up without rebuilding; --reload restarts on save.
+      - ./app:/code/app
+      - ./alembic:/code/alembic
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 volumes:
   pgdata:
