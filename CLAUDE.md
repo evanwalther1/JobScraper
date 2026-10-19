@@ -394,8 +394,14 @@ python -m app.relevance       # relabel all stored jobs after editing relevance 
 python -m app.radar           # discovery radar: Adzuna -> untracked companies -> ATS detection
 python -m app.radar --detect-only   # just (re)detect ATS, no Adzuna requests
 
-# Backup (applications + companies added from the UI exist only in the database)
-docker compose exec db pg_dump -U jobs jobs > backup.sql
+# Backup (applications + companies added from the UI exist only in the database).
+# Dump to a file INSIDE the container, then copy it out: PowerShell's `>` re-encodes output
+# as UTF-16 and silently corrupts dumps. Keep dumps OUT of the project folder (public repo).
+docker compose exec db pg_dump -U jobs -d jobs -Fc -f /tmp/jobs.dump
+docker compose cp db:/tmp/jobs.dump "$env:USERPROFILE\jobs.dump"
+# Restore into an EMPTY database (start only `db` first, before the app creates tables):
+docker compose cp "$env:USERPROFILE\jobs.dump" db:/tmp/jobs.dump
+docker compose exec db pg_restore -U jobs -d jobs --no-owner /tmp/jobs.dump
 
 # Web UI without Docker (from the venv; Postgres must already be up)
 uvicorn app.main:app --reload   # then open http://localhost:8000 (Ctrl+C to stop)
@@ -488,7 +494,10 @@ alembic check                 # do models and DB match? ("No new upgrade operati
 - [ ] Resume tailoring: suggested bullet rewrites, human-approved, versioned per job.
       Treat job descriptions as **untrusted input** (prompt injection).
 - [x] Containerized: Dockerfile + compose `web` service, one-command startup
-- [ ] GitHub Actions (tests + image build), deploy
+- [x] Deployed to AWS EC2 (Docker Compose on Ubuntu, IP-restricted security group)
+- [x] `docker-compose.prod.yml`: `web` restarts automatically on the server
+- [ ] Production hardening: Caddy + HTTPS, login + read-only demo mode
+- [ ] GitHub Actions (tests + image build)
 
 ## Conventions for Claude
 
@@ -507,7 +516,17 @@ alembic check                 # do models and DB match? ("No new upgrade operati
   credentials last 12 hours and renew for 90 days. AWS CLI v2 and uv are installed per-user.
 - **Agent Toolkit** (AWS skills + `aws-mcp` MCP server) is configured for Claude Code with
   `AWS_MCP_PROXY_PROFILES=jobradar`.
-- **Deployment plan (decided, not built yet):** EC2 `t4g.small` on the Free plan (earn the
+- **Deployed:** an EC2 `t3.small` (x86, Ubuntu 24.04, 20 GB gp3) named `jobradar` runs the
+  same `docker compose` stack. Docker + a 2 GB swap file were installed by a user-data script
+  on first boot. The security group `jobradar-sg` allows only ports 22 (SSH) and 8000 (app),
+  and only from specific IPs (no login yet, so access is IP-restricted). The server's
+  database was seeded with a `pg_dump` of the laptop DB; **the server's DB is now the source
+  of truth.** Update the server with: `cd ~/JobScraper && git pull && docker compose up -d --build`.
+  SSH key: `~/.ssh/jobradar-key.pem` on the laptop (never in the repo).
+  The server's `.env` has `COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml`, so plain
+  `docker compose` commands there also apply `docker-compose.prod.yml` (restart policy for
+  `web`, so the site comes back after a reboot). The laptop doesn't set it.
+- **Original deployment plan (partly built):** EC2 `t4g.small` on the Free plan (earn the
   extra $100 in credits first), public site behind **Caddy** (free HTTPS) with a free
   **DuckDNS** domain, a **login + read-only demo mode** (visitors browse; only the owner can
   edit or run refresh/radar), a `docker-compose.prod.yml` (no published DB port, no --reload,

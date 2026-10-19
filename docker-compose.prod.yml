@@ -1,0 +1,9 @@
+# Server-only overrides, layered on top of docker-compose.yml.
+# Activated on the server by this line in its .env (Compose reads it automatically):
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
+# The laptop doesn't set COMPOSE_FILE, so it keeps using docker-compose.yml alone.
+services:
+  web:
+    # Come back automatically after a reboot or crash. "unless-stopped" means: always
+    # restart, except when I stopped it on purpose with `docker compose stop`.
+    restart: unless-stopped
