@@ -99,6 +99,7 @@ data/
     ukg.py             UKG/UltiPro job board API: JSON search + description embedded in detail page
     paylocity.py       Paylocity job board: window.pageData list + JSON-LD description per job
     oracle.py          Oracle Recruiting Cloud REST API: radius search around Boise + detail per job
+    cats.py            CATS (catsone.com) portal JSON: one request per company, descriptions included
     __init__.py        CONNECTORS registry: Source -> connector class
 alembic.ini            Alembic config (DB URL is overridden from .env in env.py)
 alembic/
@@ -111,7 +112,7 @@ alembic/
 ## Database schema
 
 **companies**: who we poll.
-- `name`, `source` (greenhouse | lever | ashby | workday | ukg | paylocity | oracle | manual), `ats_slug`
+- `name`, `source` (greenhouse | lever | ashby | workday | ukg | paylocity | oracle | cats | manual), `ats_slug`
   (e.g. `stripe` in `boards-api.greenhouse.io/v1/boards/stripe/jobs`), `careers_url`,
   `active`, `last_fetched_at`
 - `preference` (favorite | normal | hidden) + `notes`: set on the Companies page. Hidden
@@ -226,7 +227,7 @@ takes about 20 seconds. For each active company, in its own transaction:
      Order of preference: city/site values in the area, then a state value of "Idaho"
      (KLA), then "has city/state filters but none local" (skip). A board with only a
      *country* filter gets a full scan, because "USA" alone can hide Boise jobs.
-   - **Greenhouse** and **Paylocity** return a company's whole board in one request.
+   - **Greenhouse**, **Paylocity** and **CATS** return a company's whole board in one request.
    - **UKG** returns structured addresses (city + state) in the list.
    - **Oracle** (Albertsons) searches a 30-mile radius around the company's Boise location.
      Its location facets only list the top 100 locations, so filtering by facet would miss
@@ -262,7 +263,7 @@ Our rule is "public/official APIs only, nothing a site forbids". So check the ho
 
 | Platform | Status |
 |---|---|
-| Greenhouse, Workday, Paylocity, Oracle | OK (paths we use are allowed, or no robots.txt) |
+| Greenhouse, Workday, Paylocity, Oracle, CATS | OK (paths we use are allowed, or no robots.txt) |
 | Adzuna | Blocks crawlers, but we use its official keyed API under its own terms |
 | **UKG** | **Disallows `*/JobBoardView`, which our job-list call uses** (detail pages are allowed). Kept anyway by my decision, because Idaho Central Credit Union (ICCU) is on UKG and I want its jobs. Low volume: one list request per company per refresh |
 | NEOGOV (governmentjobs.com) | Allows only search engines/aggregators (an RSS feed exists at `/SearchEngine/JobsFeed?agency=...`). Not built |
@@ -304,7 +305,8 @@ The Radar page lists untracked companies by relevant posting count, with **Add &
 (when the detected ATS has a connector), **Detect ATS** with a corrected domain, **Link** (same
 company as a tracked one, e.g. "Trinity Health" = Saint Alphonsus), and **Ignore**. Its
 **Connector payoff** table groups unsupported ATSes by how many relevant companies use them.
-That's how we decide which connector to build next, and we skip ATSes used by only one company.
+That's how we decide which connector to build next. An ATS used by only one company is still
+worth a connector when that company matters to me (CATS was built for SkyIO alone).
 
 Companies added from the UI live only in the database, not in `seed_companies.py`. Back up
 with `pg_dump` (see "Everyday commands").
@@ -482,8 +484,9 @@ alembic check                 # do models and DB match? ("No new upgrade operati
 - [x] `company_name` on jobs; relevance labels (match/senior/non_tech) + `job_matches` view + tests
 - [x] UKG + Paylocity connectors, ATS detector, 20 more companies (28 total)
 - [x] Oracle Recruiting Cloud connector (Albertsons)
-- [ ] More connectors, chosen from the Radar page's payoff table (2+ real companies each, and
-      allowed by robots.txt). As of the first radar run, nothing qualified: NEOGOV and iCIMS
+- [x] CATS connector (SkyIO), and `detect_ats` recognizes CATS widgets
+- [ ] More connectors, chosen from the Radar page's payoff table or for a single company I want
+      (allowed by robots.txt). As of the first radar run, nothing qualified: NEOGOV and iCIMS
       block bots, ADP's matches were wrong companies, Phenom is a front end over other ATSes.
 - [ ] Lever connector (no Treasure Valley companies found on it yet)
 - [ ] Store `description_text` + structured `qualifications` + full-text search (see schema note)
@@ -526,6 +529,15 @@ alembic check                 # do models and DB match? ("No new upgrade operati
   The server's `.env` has `COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml`, so plain
   `docker compose` commands there also apply `docker-compose.prod.yml` (restart policy for
   `web`, so the site comes back after a reboot). The laptop doesn't set it.
+- **Open items (as of the first deploy):**
+  1. `docker-compose.prod.yml` is written but **not yet active on the server**: push it, then on
+     the server `git pull`, add the `COMPOSE_FILE=...` line to `.env`, `docker compose up -d`,
+     and confirm with `docker inspect --format '{{.Name}}: {{.HostConfig.RestartPolicy.Name}}' $(docker compose ps -q)`.
+  2. **Phone can't load the site on campus Wi-Fi** (same public IP as the laptop, but it hangs).
+     Suspect: the campus network blocks port 8000 for the phone's network. Test
+     `http://portquiz.net:8000` on the phone; if it also hangs, serve on port 80 (add a `80:8000`
+     port mapping in the prod compose file and a port-80 inbound rule from the allowed IPs).
+     If it loads, check `docker compose logs -f web` and use VPC Flow Logs to see rejected traffic.
 - **Original deployment plan (partly built):** EC2 `t4g.small` on the Free plan (earn the
   extra $100 in credits first), public site behind **Caddy** (free HTTPS) with a free
   **DuckDNS** domain, a **login + read-only demo mode** (visitors browse; only the owner can

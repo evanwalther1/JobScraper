@@ -1,4 +1,5 @@
 from app.connectors.base import Connector, JobPosting
+from app.connectors.cats import CatsConnector
 from app.connectors.greenhouse import GreenhouseConnector
 from app.connectors.oracle import OracleConnector
 from app.connectors.paylocity import PaylocityConnector
@@ -13,6 +14,7 @@ CONNECTORS: dict[Source, type[Connector]] = {
     Source.UKG: UKGConnector,
     Source.PAYLOCITY: PaylocityConnector,
     Source.ORACLE: OracleConnector,
+    Source.CATS: CatsConnector,
 }
 
 __all__ = ["CONNECTORS", "Connector", "JobPosting"]

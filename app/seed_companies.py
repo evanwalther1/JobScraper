@@ -10,6 +10,7 @@ ats_slug formats:
   ukg         host/tenant/board    {host}/{tenant}/JobBoard/{board}
   paylocity   company GUID         recruiting.paylocity.com/recruiting/jobs/All/{guid}
   oracle      host/siteNumber      {host}/hcmUI/CandidateExperience/en/sites/{siteNumber}
+  cats        portal ID            app.catsone.com/portal?id={portal_id}
 
 Finding a new company's ATS: `python -m app.detect_ats "Name" domain.com`.
 Candidates we couldn't connect yet are listed in data/treasure_valley_candidates.csv.
@@ -20,7 +21,7 @@ from sqlalchemy.dialects.postgresql import insert
 from app.db import SessionLocal
 from app.models import Company, Source
 
-G, W, U, P, O = Source.GREENHOUSE, Source.WORKDAY, Source.UKG, Source.PAYLOCITY, Source.ORACLE
+G, W, U, P, O, C = Source.GREENHOUSE, Source.WORKDAY, Source.UKG, Source.PAYLOCITY, Source.ORACLE, Source.CATS
 
 # (name, source, ats_slug, careers_url, location_aliases)
 # location_aliases: extra regex counted as "in the area" for boards that label locations
@@ -61,6 +62,8 @@ COMPANIES = [
     ("Northwest Nazarene University", P, "dc628dad-def7-40c4-a8e8-46445f141a37", "https://www.nnu.edu/employment", None),
     # Oracle Recruiting Cloud
     ("Albertsons Companies", O, "eofd.fa.us6.oraclecloud.com/CX_1", "https://www.albertsonscompanies.com/careers", None),
+    # CATS
+    ("SkyIO", C, "22329", "https://skyio.com/careers/", None),
 ]
 
 

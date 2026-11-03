@@ -46,6 +46,7 @@ class Source(StrEnum):
     UKG = "ukg"
     PAYLOCITY = "paylocity"
     ORACLE = "oracle"
+    CATS = "cats"
     MANUAL = "manual"
 
 

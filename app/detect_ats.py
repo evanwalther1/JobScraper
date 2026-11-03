@@ -55,6 +55,8 @@ ATS_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("breezy", re.compile(r"([\w-]+)\.breezy\.hr", re.I)),
     ("teamtailor", re.compile(r"([\w-]+)\.teamtailor\.com", re.I)),
     ("phenom", re.compile(r"cdn\.phenompeople\.com|phenompro", re.I)),
+    # The portal ID, from the embedded job widget or a hosted portal URL ({sub}.catsone.com/careers/22329-Name).
+    ("cats", re.compile(r"cats-portal-widget-(\d+)|cjw\(\{\s*\"id\":\s*(\d+)|catsone\.com/careers/(\d+)", re.I)),
 ]
 # Subdomains that belong to the platform itself, not a company.
 _NOT_A_COMPANY = {"www", "api", "cdn", "static", "assets", "app", "boards", "jobs", "careers", "help", "support", "images"}

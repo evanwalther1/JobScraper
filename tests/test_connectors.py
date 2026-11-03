@@ -2,7 +2,10 @@
 
 from types import SimpleNamespace
 
+from app.connectors.cats import CatsConnector
 from app.connectors.ukg import _location_text
+from app.detect_ats import _scan
+from app.location import in_area
 from app.connectors.workday import WorkdayConnector
 
 
@@ -58,3 +61,30 @@ def test_ukg_location_text():
         {"Address": {}, "LocalizedDescription": "Remote"},
     ]
     assert _location_text(locations) == "Boise, ID; Remote"
+
+
+def test_cats_parse():  # SkyIO, trimmed from app.catsone.com/portal?id=22329
+    job = {
+        "id": 16863594, "title": " Control Systems Engineer ", "type": "H",
+        "url": "http://careers.skyio.com/careers/22329-SkyIO-Inc/jobs/16863594-Control-Systems-Engineer/",
+        "location": {"city": "Boise", "state": "Idaho", "postal_code": ""},
+        "remote_type": "", "category_name": "none", "department": None,
+        "description": "<p>Automation team</p>", "date_posted": "2026-10-13T16:22:49+00:00",
+    }
+    p = CatsConnector(client=None)._parse(job)
+    assert (p.external_id, p.title, p.location) == ("16863594", "Control Systems Engineer", "Boise, Idaho")
+    assert p.url.startswith("https://careers.skyio.com/")
+    assert p.employment_type == "Hire" and p.department is None and p.remote is None
+    assert p.posted_at.year == 2026 and in_area(p.location)
+
+
+def test_cats_remote_job():
+    job = {"id": 1, "title": "Aveva MES Engineer", "url": "https://x/1", "type": "C2H",
+           "location": {"city": "Remote", "state": "United States"}, "remote_type": "Fully remote"}
+    p = CatsConnector(client=None)._parse(job)
+    assert p.remote is True and p.employment_type == "Contract to hire" and not in_area(p.location)
+
+
+def test_detect_cats_widget():
+    html = '<div id="cats-portal-widget-22329"></div><script>cjw({"id":22329,"domain":"catsone.com"});</script>'
+    assert _scan(html)[:2] == ("cats", "22329")

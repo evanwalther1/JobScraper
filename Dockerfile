@@ -1,3 +1,7 @@
+# Dockerfile is the recipe for the app's image
+# An image is a snapshot of what the prepared machine should look like
+# A container is a running instance of an image
+
 # The web app's image. docker-compose.yml runs it next to Postgres.
 FROM python:3.14-slim
 
