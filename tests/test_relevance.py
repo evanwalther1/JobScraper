@@ -28,6 +28,10 @@ MUST_MATCH = [
     "Applications Integration Engineer I or II- Onsite in Boise, ID",
     "Network Automation Engineer (Service-Provider)",
     "Boise State University 2026 Fall Career Fair Applicants- Technology",
+    "Analytics Platforms Analyst",
+    "Commercial Reporting and Analytics Analyst  - Boise, ID",
+    "SAP Planning & Analytics Analyst",
+    "Intern-Identity and Configuring Identity Solutions",
 ]
 
 MUST_BE_SENIOR = [

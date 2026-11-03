@@ -47,6 +47,11 @@ class Source(StrEnum):
     PAYLOCITY = "paylocity"
     ORACLE = "oracle"
     CATS = "cats"
+    EIGHTFOLD = "eightfold"
+    SUCCESSFACTORS = "successfactors"
+    AVATURE = "avature"
+    BAMBOOHR = "bamboohr"
+    BREEZY = "breezy"
     MANUAL = "manual"
 
 

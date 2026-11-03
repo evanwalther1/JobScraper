@@ -100,6 +100,11 @@ data/
     paylocity.py       Paylocity job board: window.pageData list + JSON-LD description per job
     oracle.py          Oracle Recruiting Cloud REST API: radius search around Boise + detail per job
     cats.py            CATS (catsone.com) portal JSON: one request per company, descriptions included
+    eightfold.py       Eightfold career-site API: location search near Boise (paged) + detail per job
+    successfactors.py  SuccessFactors career sites: sitemap.xml list + schema.org job pages (API is robots-blocked)
+    avature.py         Avature portals: sitemap.xml list + labeled-field job pages
+    bamboohr.py        BambooHR careers JSON: list + detail per job
+    breezy.py          Breezy HR public JSON feed + description from the job page
     __init__.py        CONNECTORS registry: Source -> connector class
 alembic.ini            Alembic config (DB URL is overridden from .env in env.py)
 alembic/
@@ -112,7 +117,8 @@ alembic/
 ## Database schema
 
 **companies**: who we poll.
-- `name`, `source` (greenhouse | lever | ashby | workday | ukg | paylocity | oracle | cats | manual), `ats_slug`
+- `name`, `source` (greenhouse | lever | ashby | workday | ukg | paylocity | oracle | cats | eightfold |
+  successfactors | avature | bamboohr | breezy | manual), `ats_slug`
   (e.g. `stripe` in `boards-api.greenhouse.io/v1/boards/stripe/jobs`), `careers_url`,
   `active`, `last_fetched_at`
 - `preference` (favorite | normal | hidden) + `notes`: set on the Companies page. Hidden
@@ -229,6 +235,12 @@ takes about 20 seconds. For each active company, in its own transaction:
      *country* filter gets a full scan, because "USA" alone can hide Boise jobs.
    - **Greenhouse**, **Paylocity** and **CATS** return a company's whole board in one request.
    - **UKG** returns structured addresses (city + state) in the list.
+   - **Eightfold** (Cradlepoint/Ericsson, Plexus, Lam) searches "Boise, ID" server-side; the
+     results include nearby towns and some fuzzy matches elsewhere, which step 2 drops.
+   - **SuccessFactors** (Simplot) and **Avature** (St. Luke's) have no allowed JSON API, so the
+     list comes from the sitemap they publish for crawlers. Simplot's URLs end in state + ZIP,
+     so non-Idaho jobs are dropped without a request. St. Luke's URLs have no location, so its
+     first refresh reads all ~440 job pages (~4 min); after that only new jobs are read.
    - **Oracle** (Albertsons) searches a 30-mile radius around the company's Boise location.
      Its location facets only list the top 100 locations, so filtering by facet would miss
      small towns (Nampa, Caldwell, Star, Kuna, Emmett); the radius search catches them.
@@ -246,6 +258,7 @@ takes about 20 seconds. For each active company, in its own transaction:
 
 Other details:
 - **Isolation:** one failing company is logged and skipped; the others still commit.
+- **Duplicates:** refresh keeps one copy per `external_id` (Eightfold paging can repeat a job).
 - **Backoff:** `Connector.request` retries 429 and 5xx responses after 1s, 2s, 4s and 8s.
 - **Workday quirks:**
   - Pages hold at most 20 jobs, and only the first page reports the real `total`.
@@ -263,9 +276,10 @@ Our rule is "public/official APIs only, nothing a site forbids". So check the ho
 
 | Platform | Status |
 |---|---|
-| Greenhouse, Workday, Paylocity, Oracle, CATS | OK (paths we use are allowed, or no robots.txt) |
+| Greenhouse, Workday, Paylocity, Oracle, CATS, Eightfold, Avature, BambooHR, Breezy | OK (paths we use are allowed, or no robots.txt) |
 | Adzuna | Blocks crawlers, but we use its official keyed API under its own terms |
 | **UKG** | **Disallows `*/JobBoardView`, which our job-list call uses** (detail pages are allowed). Kept anyway by my decision, because Idaho Central Credit Union (ICCU) is on UKG and I want its jobs. Low volume: one list request per company per refresh |
+| SuccessFactors career sites | `/services/` (the JSON API) is disallowed, so we use the sitemap and `/job/` pages, which are allowed |
 | NEOGOV (governmentjobs.com) | Allows only search engines/aggregators (an RSS feed exists at `/SearchEngine/JobsFeed?agency=...`). Not built |
 | iCIMS | `Disallow: /` for all bots. Not built |
 
@@ -485,6 +499,8 @@ alembic check                 # do models and DB match? ("No new upgrade operati
 - [x] UKG + Paylocity connectors, ATS detector, 20 more companies (28 total)
 - [x] Oracle Recruiting Cloud connector (Albertsons)
 - [x] CATS connector (SkyIO), and `detect_ats` recognizes CATS widgets
+- [x] Eightfold (Cradlepoint, Plexus, Lam), SuccessFactors (Simplot), Avature (St. Luke's),
+      BambooHR (Keller, PlexTrac), Breezy (Velox) connectors, from the 2026-11 ATS survey
 - [ ] More connectors, chosen from the Radar page's payoff table or for a single company I want
       (allowed by robots.txt). As of the first radar run, nothing qualified: NEOGOV and iCIMS
       block bots, ADP's matches were wrong companies, Phenom is a front end over other ATSes.
@@ -524,20 +540,41 @@ alembic check                 # do models and DB match? ("No new upgrade operati
   on first boot. The security group `jobradar-sg` allows only ports 22 (SSH) and 8000 (app),
   and only from specific IPs (no login yet, so access is IP-restricted). The server's
   database was seeded with a `pg_dump` of the laptop DB; **the server's DB is now the source
-  of truth.** Update the server with: `cd ~/JobScraper && git pull && docker compose up -d --build`.
-  SSH key: `~/.ssh/jobradar-key.pem` on the laptop (never in the repo).
+  of truth.**
   The server's `.env` has `COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml`, so plain
   `docker compose` commands there also apply `docker-compose.prod.yml` (restart policy for
   `web`, so the site comes back after a reboot). The laptop doesn't set it.
-- **Open items (as of the first deploy):**
-  1. `docker-compose.prod.yml` is written but **not yet active on the server**: push it, then on
-     the server `git pull`, add the `COMPOSE_FILE=...` line to `.env`, `docker compose up -d`,
-     and confirm with `docker inspect --format '{{.Name}}: {{.HostConfig.RestartPolicy.Name}}' $(docker compose ps -q)`.
-  2. **Phone can't load the site on campus Wi-Fi** (same public IP as the laptop, but it hangs).
-     Suspect: the campus network blocks port 8000 for the phone's network. Test
-     `http://portquiz.net:8000` on the phone; if it also hangs, serve on port 80 (add a `80:8000`
-     port mapping in the prod compose file and a port-80 inbound rule from the allowed IPs).
-     If it loads, check `docker compose logs -f web` and use VPC Flow Logs to see rejected traffic.
+- **Deploying an update (laptop -> GitHub -> server):**
+  1. On the laptop: commit and push to GitHub as usual.
+  2. Connect: `ssh jobradar` (from PowerShell). That name is defined in `~/.ssh/config` on the
+     laptop (server IP, user `ubuntu`, key `~/.ssh/jobradar-key.pem`), so the IP and key stay
+     out of this public repo. Type `exit` to leave the server.
+  3. On the server:
+     ```bash
+     cd ~/JobScraper
+     git pull                                # get the new code
+     docker compose up -d --build            # rebuild the web image; startup runs alembic upgrade head
+     docker compose ps                       # both services Up? (db should say "healthy")
+     ```
+  4. Only when the change needs it:
+     ```bash
+     docker compose exec web python -m app.seed_companies        # seed_companies.py changed
+     docker compose exec web python -m app.refresh --company NAME # pull a new company's jobs now
+     docker compose exec web python -m app.relevance             # relevance rules changed
+     docker compose logs -f web                                  # watch logs (Ctrl+C to stop)
+     ```
+  - **`ssh jobradar` hangs:** the laptop's public IP changed and the security group doesn't
+    allow it (campus Wi-Fi rotates through several `132.178.207.x` addresses). Check the IP at
+    `checkip.amazonaws.com` and add it to `jobradar-sg` for ports 22 and 8000.
+  - **"Connection refused" or a new host key warning:** the instance was stopped and started,
+    so its public IP changed. Get the new one (EC2 console -> Instances -> jobradar) and update
+    `HostName` in `~/.ssh/config`.
+- **Open items:**
+  1. **Site hangs from some devices/networks.** Likely cause (found 2026-10-28): campus Wi-Fi
+     rotates public IPs (`.17`, `.19`, ...), and the security group allows single addresses only.
+     Options: allow `132.178.207.0/24`, or build login + read-only demo mode and open the site
+     to everyone. If the phone still hangs on an allowed IP, test `http://portquiz.net:8000`
+     (port 8000 blocked -> serve on port 80).
 - **Original deployment plan (partly built):** EC2 `t4g.small` on the Free plan (earn the
   extra $100 in credits first), public site behind **Caddy** (free HTTPS) with a free
   **DuckDNS** domain, a **login + read-only demo mode** (visitors browse; only the owner can

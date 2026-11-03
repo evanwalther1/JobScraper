@@ -5,6 +5,7 @@ our normalized shape. refresh.py doesn't care which ATS a posting came from.
 """
 
 import hashlib
+import re
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -38,6 +39,25 @@ class JobPosting:
 def guess_remote(location: str | None) -> bool | None:
     if location and "remote" in location.lower():
         return True
+    return None
+
+
+def inner_html(page: str, marker: str, tag: str = "div", start: int = 0) -> str | None:
+    """Inner HTML of the first <tag> whose opening tag contains `marker` (searched from `start`).
+
+    For job pages that only have the description inside nested markup. Counting <tag> and
+    </tag> finds the matching close; a regex alone can't, because the content nests the
+    same tag.
+    """
+    i = page.find(marker, start)
+    if i == -1:
+        return None
+    body = page.index(">", i) + 1
+    depth = 1
+    for m in re.finditer(rf"<(/?){tag}\b", page[body:], re.I):
+        depth += -1 if m.group(1) else 1
+        if depth == 0:
+            return page[body : body + m.start()].strip() or None
     return None
 
 

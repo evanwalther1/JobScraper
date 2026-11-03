@@ -25,7 +25,7 @@ State of Idaho,dhr.idaho.gov,government,neogov,needs connector,governmentjobs.co
 Albertsons Companies,albertsonscompanies.com,retail,oracle,added,Oracle Recruiting Cloud (30-mile radius around Boise)
 SkyIO,skyio.com,engineering,cats,added,CATS portal 22329 (job widget on skyio.com/careers)
 WinCo Foods,wincofoods.com,retail,icims,needs connector,iCIMS (slug not confirmed)
-Lam Research,lamresearch.com,semiconductor,eightfold,needs connector,lamresearch.eightfold.ai
+Lam Research,lamresearch.com,semiconductor,eightfold,added,Eightfold careers.lamresearch.com
 PetIQ,petiq.com,healthcare,adp,needs connector,myjobs.adp.com/petiqcorp
 PakEnergy,pakenergy.com,software,paycor,needs connector,
 CapEd Credit Union,capedcu.com,finance,paycom,needs connector,
@@ -35,20 +35,48 @@ Boise State University,boisestate.edu,education,,unknown,"not Workday (bsu = Bal
 ClickBank,clickbank.com,software,,unknown,
 WhiteCloud Analytics,whitecloudanalytics.com,software,,unknown,
 MetaGeek,metageek.com,software,,unknown,
-Cradlepoint,cradlepoint.com,software,,unknown,Ericsson careers
+Cradlepoint,cradlepoint.com,software,eightfold,added,Ericsson's Eightfold site jobs.ericsson.com (its Boise jobs); tracked as Cradlepoint (Ericsson)
 Bodybuilding.com,bodybuilding.com,software,,unknown,
-Intuit,intuit.com,software,,unknown,jobs.intuit.com (custom)
+Intuit,intuit.com,software,,unknown,careers page mentions Cornerstone; confirm
 Lumen Technologies,lumen.com,telecom,,unknown,
 PCS Edventures,pcsedu.com,edtech,,unknown,
-J.R. Simplot,simplot.com,manufacturing,,unknown,
+J.R. Simplot,simplot.com,manufacturing,successfactors,added,SuccessFactors career site careers.simplot.com (sitemap + job pages)
 Packaging Corporation of America,packagingcorp.com,manufacturing,,unknown,
 American Semiconductor,americansemi.com,semiconductor,,unknown,
 Tokyo Electron,tel.com,semiconductor,,unknown,
 ASML,asml.com,semiconductor,,unknown,
-St. Luke's Health System,stlukesonline.org,healthcare,,unknown,
+St. Luke's Health System,stlukesonline.org,healthcare,avature,added,Avature careers.slhs.org/careersmarketplace (sitemap + job pages)
 Primary Health Medical Group,primaryhealth.com,healthcare,,unknown,
-Eide Bailly,eidebailly.com,finance,,unknown,
+Eide Bailly,eidebailly.com,finance,icims,needs connector,iCIMS blocks bots (robots.txt)
 Western Aircraft,westair.com,aviation,,unknown,
 College of Western Idaho,cwi.edu,education,,unknown,
 West Ada School District,westada.org,education,,unknown,
 Boise School District,boiseschools.org,education,,unknown,
+Farnsworth Group,f-w.com,engineering,greenhouse,unknown,Greenhouse board farnsworthgroup; 8 Boise jobs (facilities/semiconductor engineering) in 2026-11
+J-U-B Engineers,jub.com,engineering,paylocity,unknown,Paylocity 5d92621d-0bfc-4f8b-a54f-c86e3804c49e; 9 Meridian jobs (civil) in 2026-11
+GetWhys,getwhys.io,software,greenhouse,unknown,Greenhouse board getwhys; multi-city postings incl. Boise
+Keller Associates,kellerassociates.com,engineering,bamboohr,added,BambooHR kellerassociates
+PlexTrac,plextrac.com,software,bamboohr,added,BambooHR plextrac (0 open jobs in 2026-11)
+Velox Media,veloxmedia.com,marketing,breezy,added,Breezy velox
+Kit,kit.com,software,ashby,needs connector,remote-first; 0 Boise jobs in 2026-11
+Petra Security,petrasecurity.com,software,ashby,needs connector,0 Boise jobs in 2026-11
+Tackle.io,tackle.io,software,lever,needs connector,Lever board tackle (API returned no list in 2026-11)
+In Time Tec,intimetec.com,software,rippling,needs connector,
+Black Sage Technologies,blacksagetech.com,defense,paycor,needs connector,
+Plexus,plexus.com,manufacturing,eightfold,added,Eightfold plexus.eightfold.ai (Nampa)
+HDR,hdrinc.com,engineering,taleo,needs connector,
+Exyte,exyte.net,semiconductor,phenom,needs connector,Phenom is a front end; find the ATS behind it
+Slalom,slalom.com,consulting,avature,unknown,careers page links to Avature; confirm
+LeadSimple,leadsimple.com,software,,unknown,careers page links to Dover
+Civitai,civitai.com,software,,unknown,
+Kno2,kno2.com,software,,unknown,
+Sturdy,sturdy.ai,software,,unknown,
+Talentpair,talentpair.com,software,,unknown,
+Pitch Aeronautics,pitchaero.com,aerospace,,unknown,
+Photronics,photronics.com,semiconductor,,unknown,
+Idaho Scientific,idahoscientific.com,defense,,unknown,
+Lovevery,lovevery.com,retail,,unknown,
+Balihoo,balihoo.com,software,,unknown,
+POWER Engineers,powereng.com,engineering,,unknown,
+Burns & McDonnell,burnsmcd.com,engineering,,unknown,
+Hitachi High-Tech America,hitachi-hightech.com,semiconductor,,unknown,

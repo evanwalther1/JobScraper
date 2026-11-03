@@ -11,6 +11,11 @@ ats_slug formats:
   paylocity   company GUID         recruiting.paylocity.com/recruiting/jobs/All/{guid}
   oracle      host/siteNumber      {host}/hcmUI/CandidateExperience/en/sites/{siteNumber}
   cats        portal ID            app.catsone.com/portal?id={portal_id}
+  eightfold   host/domain          {host}/api/pcsx/search?domain={domain}
+  successfactors  career site host  {host}/sitemap.xml
+  avature     host/portal          {host}/{portal}/sitemap.xml
+  bamboohr    subdomain            {slug}.bamboohr.com/careers/list
+  breezy      subdomain            {slug}.breezy.hr/json
 
 Finding a new company's ATS: `python -m app.detect_ats "Name" domain.com`.
 Candidates we couldn't connect yet are listed in data/treasure_valley_candidates.csv.
@@ -22,6 +27,7 @@ from app.db import SessionLocal
 from app.models import Company, Source
 
 G, W, U, P, O, C = Source.GREENHOUSE, Source.WORKDAY, Source.UKG, Source.PAYLOCITY, Source.ORACLE, Source.CATS
+E, SF, AV, BH, BZ = Source.EIGHTFOLD, Source.SUCCESSFACTORS, Source.AVATURE, Source.BAMBOOHR, Source.BREEZY
 
 # (name, source, ats_slug, careers_url, location_aliases)
 # location_aliases: extra regex counted as "in the area" for boards that label locations
@@ -64,6 +70,19 @@ COMPANIES = [
     ("Albertsons Companies", O, "eofd.fa.us6.oraclecloud.com/CX_1", "https://www.albertsonscompanies.com/careers", None),
     # CATS
     ("SkyIO", C, "22329", "https://skyio.com/careers/", None),
+    # Eightfold (Ericsson's Boise jobs are Cradlepoint's)
+    ("Cradlepoint (Ericsson)", E, "jobs.ericsson.com/ericsson.com", "https://cradlepoint.ericsson.com/about/careers/", None),
+    ("Plexus", E, "plexus.eightfold.ai/plexus.com", "https://www.plexus.com/en-us/careers", None),
+    ("Lam Research", E, "careers.lamresearch.com/lamresearch.com", "https://careers.lamresearch.com", None),
+    # SuccessFactors career sites
+    ("J.R. Simplot", SF, "careers.simplot.com", "https://careers.simplot.com", None),
+    # Avature
+    ("St. Luke's Health System", AV, "careers.slhs.org/careersmarketplace", "https://careers.slhs.org/careersmarketplace", None),
+    # BambooHR
+    ("Keller Associates", BH, "kellerassociates", "https://kellerassociates.bamboohr.com/careers", None),
+    ("PlexTrac", BH, "plextrac", "https://plextrac.bamboohr.com/careers", None),
+    # Breezy
+    ("Velox Media", BZ, "velox", "https://velox.breezy.hr", None),
 ]
 
 

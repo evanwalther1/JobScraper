@@ -38,6 +38,9 @@ COMPANY_WORKERS = 4  # companies refreshed in parallel
 def refresh_company(session: Session, connector: Connector, company: Company) -> dict:
     run_at = datetime.now(timezone.utc)
     fetched = connector.fetch(company)
+    # Paged APIs can return a posting twice when the list shifts between pages (Eightfold),
+    # and one upsert can't touch the same row twice. Keep the last copy of each.
+    fetched = list({p.external_id: p for p in fetched}.values())
 
     # external_id -> has a stored description?
     known = dict(

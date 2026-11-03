@@ -55,11 +55,15 @@ ATS_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("breezy", re.compile(r"([\w-]+)\.breezy\.hr", re.I)),
     ("teamtailor", re.compile(r"([\w-]+)\.teamtailor\.com", re.I)),
     ("phenom", re.compile(r"cdn\.phenompeople\.com|phenompro", re.I)),
+    # host/portal, the Avature connector's slug format ("slhs.avature.net/careersmarketplace").
+    # Skips the employee-only portals that share the host.
+    ("avature", re.compile(r"([\w-]+\.avature\.net/(?!(?:internalcareers|hiringmanager|onboarding|docusign|timeslots|CalendarInvitation)\b)[\w-]+)", re.I)),
     # The portal ID, from the embedded job widget or a hosted portal URL ({sub}.catsone.com/careers/22329-Name).
     ("cats", re.compile(r"cats-portal-widget-(\d+)|cjw\(\{\s*\"id\":\s*(\d+)|catsone\.com/careers/(\d+)", re.I)),
 ]
 # Subdomains that belong to the platform itself, not a company.
-_NOT_A_COMPANY = {"www", "api", "cdn", "static", "assets", "app", "boards", "jobs", "careers", "help", "support", "images"}
+_NOT_A_COMPANY = {"www", "api", "cdn", "static", "assets", "assets-cdn", "app", "boards", "jobs", "careers", "help",
+                  "support", "images", "na", "eu"}  # na/eu: Teamtailor's regional hosts
 
 CAREER_PATHS = ["/careers", "/careers/", "/jobs", "/about/careers", "/company/careers",
                 "/about-us/careers", "/join-us", "/work-with-us", "/employment", "/careers/jobs"]
@@ -153,6 +157,19 @@ def _probe_apis(client: httpx.Client, name: str) -> tuple[str, str] | None:
     return None
 
 
+def _connector_slug(ats: str, slug: str, domain: str) -> str | None:
+    """Turn the ID found in a link into the ats_slug our connector for that ATS expects.
+
+    None means "we know the ATS but can't build the slug from a link": the company can still
+    be added by hand on the Companies page.
+    """
+    if ats == "eightfold":
+        return f"{slug}.eightfold.ai/{domain}"  # host/domain, e.g. plexus.eightfold.ai/plexus.com
+    if ats == "successfactors":
+        return None  # links point at SAP's backend; the connector needs the career site's host
+    return slug
+
+
 def detect(name: str, domain: str, client: httpx.Client, budget_s: float = 40) -> Detection:
     """budget_s caps the time spent loading pages: some sites stall or block bots, and
     without a cap a single company could take minutes (20 pages x the request timeout)."""
@@ -169,6 +186,7 @@ def detect(name: str, domain: str, client: httpx.Client, budget_s: float = 40) -
     hit = _scan("\n".join(pages))
     if hit:
         result.ats, result.slug, result.evidence = hit
+        result.slug = _connector_slug(result.ats, result.slug, domain)
     elif (probe := _probe_apis(client, name)):
         result.ats, result.slug = probe
         result.evidence = "API slug probe"

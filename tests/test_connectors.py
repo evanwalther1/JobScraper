@@ -2,7 +2,12 @@
 
 from types import SimpleNamespace
 
+from app.connectors.avature import _fields
+from app.connectors.base import inner_html
+from app.connectors.breezy import BreezyConnector
 from app.connectors.cats import CatsConnector
+from app.connectors.eightfold import EightfoldConnector
+from app.connectors.successfactors import _STATE_ZIP
 from app.connectors.ukg import _location_text
 from app.detect_ats import _scan
 from app.location import in_area
@@ -88,3 +93,40 @@ def test_cats_remote_job():
 def test_detect_cats_widget():
     html = '<div id="cats-portal-widget-22329"></div><script>cjw({"id":22329,"domain":"catsone.com"});</script>'
     assert _scan(html)[:2] == ("cats", "22329")
+
+
+def test_inner_html_handles_nesting():  # Simplot / Breezy descriptions nest the same tag
+    page = '<span itemprop="description"><span class="x"><p>Hi</p></span><b>!</b></span><span>after</span>'
+    assert inner_html(page, 'itemprop="description"', tag="span") == '<span class="x"><p>Hi</p></span><b>!</b>'
+    assert inner_html(page, "missing") is None
+
+
+def test_successfactors_state_zip_from_url():  # careers.simplot.com sitemap URLs
+    assert _STATE_ZIP.search("Plant-Operations-Intern-(Caldwell,-ID)-ID-83607-9221").groups() == ("ID", "83607")
+    assert _STATE_ZIP.search("Packaging-Operator-Grand-Forks,-ND-ND-58203-0826").groups() == ("ND", "58203")
+
+
+def test_avature_fields():  # careers.slhs.org job page, "General Information" block
+    page = """
+      <div class="article__content__view__field__label"> City </div>
+      <div class="article__content__view__field__value"> Boise </div>
+      <div class="article__content__view__field__label">State</div>
+      <div class="article__content__view__field__value">ID</div>"""
+    assert _fields(page) == {"City": "Boise", "State": "ID"}
+
+
+def test_eightfold_shows_local_locations_first():  # Ericsson posts some jobs in 300+ cities
+    job = {"id": 5, "name": "Senior Pre-Sales Solution Architect ", "positionUrl": "/careers/job/5",
+           "locations": ["Akron,Ohio,United States", "Boise,Idaho,United States"], "postedTs": 1793069853}
+    company = SimpleNamespace(ats_slug="jobs.ericsson.com/ericsson.com", location_aliases=None)
+    p = EightfoldConnector(client=None)._parse(job, company)
+    assert p.location == "Boise,Idaho,United States" and p.external_id == "ericsson.com:5"
+    assert p.url == "https://jobs.ericsson.com/careers/job/5" and p.posted_at.year == 2026
+
+
+def test_breezy_parse():  # velox.breezy.hr/json
+    job = {"id": "e88a", "name": "Jr. SEO Analyst", "url": "https://velox.breezy.hr/p/e88a-jr-seo-analyst",
+           "published_date": "2026-10-21T18:49:21.146Z", "type": {"name": "Full-Time"},
+           "location": {"city": "Boise", "state": {"id": "ID"}, "name": "Boise, ID", "is_remote": True}}
+    p = BreezyConnector(client=None)._parse(job)
+    assert (p.location, p.employment_type, p.remote) == ("Boise, ID", "Full-Time", None)
