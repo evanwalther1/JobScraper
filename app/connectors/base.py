@@ -5,6 +5,7 @@ our normalized shape. refresh.py doesn't care which ATS a posting came from.
 """
 
 import hashlib
+import random
 import re
 import time
 from abc import ABC, abstractmethod
@@ -93,6 +94,8 @@ class Connector(ABC):
                 if attempt == retries:
                     raise
             if attempt < retries:
-                time.sleep(2**attempt)  # 1s, 2s, 4s, 8s
+                # 1s, 2s, 4s, 8s, plus up to 1s of random jitter so parallel threads that
+                # were rate-limited together don't all retry at the same instant.
+                time.sleep(2**attempt + random.random())
         resp.raise_for_status()
         return resp

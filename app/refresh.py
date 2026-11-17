@@ -16,6 +16,7 @@ Each company is its own transaction, so one failing board doesn't affect the oth
 import argparse
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
 from datetime import datetime, timezone
 
 import httpx
@@ -26,13 +27,19 @@ from sqlalchemy.orm import Session
 from app.connectors import CONNECTORS, Connector, JobPosting
 from app.db import SessionLocal
 from app.location import in_area, is_unresolved
-from app.models import Company, ExcludedPosting, Job
+from app.models import Company, ExcludedPosting, Job, Source
 from app.relevance import classify
 
 log = logging.getLogger("refresh")
 
 CHUNK = 500
 COMPANY_WORKERS = 4  # companies refreshed in parallel
+# Platforms whose rate limit is per client IP across ALL their companies get their own lane,
+# so their companies run one (or N) at a time while everyone else keeps COMPANY_WORKERS.
+# Workday sits behind Cloudflare. Measured from a home/campus connection (2026-11-17):
+# 4 Workday companies at once -> some 429s; 2 at once -> none (62s full refresh); 1 -> 101s.
+# From the AWS server even 1 lane fails, which is why refreshes run from the laptop (./refresh).
+SOURCE_LANES = {Source.WORKDAY: 2}
 
 
 def refresh_company(session: Session, connector: Connector, company: Company) -> dict:
@@ -210,10 +217,13 @@ def run_refresh(company_filter: str | None = None, company_ids: list[int] | None
         companies = session.scalars(query).all()
 
     headers = {"User-Agent": "JobScraper personal job tracker", "Accept": "application/json"}
-    with httpx.Client(headers=headers, timeout=30, follow_redirects=True) as client:
-        # Companies are independent (own transaction, own ATS host), so refresh a few at once.
-        with ThreadPoolExecutor(COMPANY_WORKERS) as pool:
-            results = [r for r in pool.map(lambda c: _refresh_one(c, client), companies) if r]
+    with httpx.Client(headers=headers, timeout=30, follow_redirects=True) as client, ExitStack() as stack:
+        # Companies are independent (own transaction), so refresh a few at once: one shared
+        # pool, plus a separate lane per rate-limited platform (both run at the same time).
+        shared = stack.enter_context(ThreadPoolExecutor(COMPANY_WORKERS))
+        lanes = {src: stack.enter_context(ThreadPoolExecutor(n)) for src, n in SOURCE_LANES.items()}
+        futures = [lanes.get(c.source, shared).submit(_refresh_one, c, client) for c in companies]
+        results = [r for f in futures if (r := f.result())]
     return results
 
 

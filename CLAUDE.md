@@ -73,12 +73,14 @@ Dockerfile             the web app's image (Python 3.14-slim, deps cached in the
 .dockerignore          keeps .venv, .env, tests, etc. out of the image
 .env / .env.example    DB credentials + DATABASE_URL (.env is gitignored)
 requirements.txt       Python dependencies
+refresh.ps1            `./refresh`: refresh the SERVER's database from this laptop (see app/remote_refresh.py)
 app/
   db.py                engine + SessionLocal (reads DATABASE_URL from .env)
   models.py            SQLAlchemy models = the schema
   seed_companies.py    the company list to poll (upsert, safe to re-run)
   detect_ats.py        find which ATS a company uses: `python -m app.detect_ats "Name" domain.com`
   refresh.py           runs every connector and syncs results into jobs
+  remote_refresh.py    SSH tunnel to the server's Postgres, then runs refresh.py from this laptop
   location.py          the Treasure Valley filter (in_area); edit this to change the search area
   relevance.py         labels jobs match / senior / non_tech; `python -m app.relevance` relabels
   radar.py             discovery radar: Adzuna postings -> companies we don't track -> ATS detection
@@ -222,8 +224,10 @@ headcount. The rule lives in `app/location.py`:
 - **Not included:** other Idaho cities (Idaho Falls, Lewiston, Moscow), statewide "Idaho",
   and plain "Remote". Edit `location.py` to change the area.
 
-Companies are refreshed **4 at a time** (`COMPANY_WORKERS`); a full run of ~40 companies
-takes about 20 seconds. For each active company, in its own transaction:
+Companies are refreshed **4 at a time** (`COMPANY_WORKERS`), except **Workday companies, which
+get their own lane of 2** (`SOURCE_LANES`): Workday's Cloudflare rate-limits per client IP across
+all Workday tenants, so 4 Workday boards at once gets 429s. A full run of ~45 companies takes
+about 60 seconds. For each active company, in its own transaction:
 1. **fetch**: the connector returns open postings as `JobPosting`s.
    - **Workday filters server-side.** The first list response includes the board's location
      filter values, each with a tenant-specific ID (e.g. Micron's "Boise, ID - Main Site",
@@ -259,7 +263,9 @@ takes about 20 seconds. For each active company, in its own transaction:
 Other details:
 - **Isolation:** one failing company is logged and skipped; the others still commit.
 - **Duplicates:** refresh keeps one copy per `external_id` (Eightfold paging can repeat a job).
-- **Backoff:** `Connector.request` retries 429 and 5xx responses after 1s, 2s, 4s and 8s.
+- **Backoff:** `Connector.request` retries 429 and 5xx responses after 1s, 2s, 4s and 8s, plus up
+  to 1s of random jitter so rate-limited threads don't retry in lockstep. Workday detail requests
+  run 2 at a time (5 got 429s).
 - **Workday quirks:**
   - Pages hold at most 20 jobs, and only the first page reports the real `total`.
   - Req IDs are only unique within a tenant, so `external_id = "tenant:reqid"`.
@@ -402,7 +408,11 @@ docker compose exec db psql -U jobs -d jobs   # SQL shell inside the container
 .\.venv\Scripts\Activate.ps1                  # activate venv (then drop the .\.venv\Scripts\ prefix)
 pip install -r requirements.txt
 
-# Data
+# Refresh the LIVE site's data (runs here, writes to the server's DB through an SSH tunnel)
+./refresh                     # all companies (~60s)
+./refresh --company micron    # one company
+
+# Data (these act on whichever DATABASE_URL is set: the laptop's DB by default)
 python -m app.seed_companies  # load/update the Treasure Valley company list (safe to re-run)
 python -m app.refresh         # pull all active companies' jobs into Postgres
 python -m app.refresh --company micron   # just one company (name contains "micron")
@@ -569,8 +579,19 @@ alembic check                 # do models and DB match? ("No new upgrade operati
   - **"Connection refused" or a new host key warning:** the instance was stopped and started,
     so its public IP changed. Get the new one (EC2 console -> Instances -> jobradar) and update
     `HostName` in `~/.ssh/config`.
+- **Refresh from the laptop, not the server (since 2026-11):** Workday added Cloudflare, which
+  rate-limits the server's AWS datacenter IP so hard that even one Workday company at a time
+  gets 429s. Home/campus connections are fine. So `./refresh` (laptop) is the way to refresh:
+  it reads the server's DB password from its `.env` over SSH, opens a tunnel
+  (`localhost:15432` -> server Postgres; port 5432 stays closed to the internet), checks the
+  server's migration matches this code, then runs the normal refresh. **Deploy before using it
+  after a schema change** (it refuses otherwise). We deliberately don't disguise requests as a
+  browser or rotate IPs to get around Cloudflare: that's evading a site's bot protection.
 - **Open items:**
-  1. **Site hangs from some devices/networks.** Likely cause (found 2026-10-28): campus Wi-Fi
+  1. **The website's Refresh button still runs on the server**, so its Workday companies fail
+     with 429s (other ATSes work). Options: skip Workday when running on the server, or hide the
+     button and rely on `./refresh`.
+  2. **Site hangs from some devices/networks.** Likely cause (found 2026-10-28): campus Wi-Fi
      rotates public IPs (`.17`, `.19`, ...), and the security group allows single addresses only.
      Options: allow `132.178.207.0/24`, or build login + read-only demo mode and open the site
      to everyone. If the phone still hangs on an allowed IP, test `http://portquiz.net:8000`

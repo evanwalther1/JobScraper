@@ -29,6 +29,8 @@ def _parse_slug(company: Company) -> tuple[str, str, str]:
 
 class WorkdayConnector(Connector):
     source = Source.WORKDAY
+    # Workday sits behind Cloudflare, which returns 429 at 5 parallel detail requests.
+    detail_workers = 2
 
     def _api_base(self, company: Company) -> str:
         tenant, wd, site = _parse_slug(company)
