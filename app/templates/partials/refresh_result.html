@@ -1,10 +1,13 @@
 <article class="refresh-result {% if summary.failed %}has-errors{% endif %}">
   <div>
-    <strong>Refreshed {{ summary.ok }} compan{{ "y" if summary.ok == 1 else "ies" }}.</strong>
+    <strong>Refreshed {{ summary.ok }} compan{{ "y" if summary.ok == 1 else "ies" }}{% if laptop_since %} on the server{% endif %}.</strong>
     {{ summary.new }} new job{{ "" if summary.new == 1 else "s" }}, {{ summary.closed }} closed.
     {% for r in results if not r.ok %}
       <div class="error">{{ r.company }} failed: {{ r.error }}</div>
     {% endfor %}
+    {% if laptop_since %}
+      <div hx-get="/refresh/laptop-status?since={{ laptop_since|urlencode }}" hx-trigger="load" hx-swap="outerHTML"></div>
+    {% endif %}
   </div>
   <button class="btn-sm link-btn" onclick="this.closest('article').remove()" aria-label="Dismiss">✕</button>
 </article>

@@ -1,6 +1,9 @@
-<article class="refresh-result {% if not result.ok %}has-errors{% endif %}">
+<article class="refresh-result {% if result and not result.ok %}has-errors{% endif %}">
   <div>
-    {% if result.ok %}
+    {% if not result %}
+      <strong>Added {{ name }}.</strong> Its jobs load on the next refresh from your laptop
+      (this ATS rate-limits the server).
+    {% elif result.ok %}
       <strong>Added {{ name }}.</strong> {{ result.open }} local job{{ "" if result.open == 1 else "s" }} found
       ({{ result.fetched }} fetched). <a href="/companies">Reload the list</a> to see it.
       {% if result.open == 0 %}<div class="hint">0 local jobs? If the company is local, its board may label locations

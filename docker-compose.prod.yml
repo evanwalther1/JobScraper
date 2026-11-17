@@ -7,3 +7,8 @@ services:
     # Come back automatically after a reboot or crash. "unless-stopped" means: always
     # restart, except when I stopped it on purpose with `docker compose stop`.
     restart: unless-stopped
+    environment:
+      # Workday's Cloudflare rate-limits this server's AWS IP, so Workday companies are
+      # refreshed from the laptop: the Refresh button skips them here and opens
+      # jobradar://refresh, which runs `./refresh --source workday` on the laptop.
+      LAPTOP_REFRESH_SOURCES: workday

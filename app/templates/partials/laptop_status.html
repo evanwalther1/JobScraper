@@ -1,0 +1,17 @@
+{# The laptop half of a refresh (Workday). Re-polls itself every 5s until done or timed out. #}
+{% if done %}
+  <div class="laptop-status">
+    Laptop refresh finished: {{ ok|length }} of {{ total }} Workday compan{{ "y" if total == 1 else "ies" }} updated.
+    {% for c in failed %}<div class="error">{{ c.name }} failed: {{ c.last_error }}</div>{% endfor %}
+  </div>
+{% elif timed_out %}
+  <div class="laptop-status muted">
+    No laptop refresh seen, so Workday companies weren't updated. That half only runs when you click
+    Refresh on the laptop (or run <code>./refresh</code> there).
+  </div>
+{% else %}
+  <div class="laptop-status" aria-busy="true"
+       hx-get="/refresh/laptop-status?since={{ since|urlencode }}" hx-trigger="every 5s" hx-swap="outerHTML">
+    Workday companies are refreshing from your laptop ({{ ok|length + failed|length }}/{{ total }})…
+  </div>
+{% endif %}

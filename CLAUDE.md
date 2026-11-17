@@ -74,6 +74,7 @@ Dockerfile             the web app's image (Python 3.14-slim, deps cached in the
 .env / .env.example    DB credentials + DATABASE_URL (.env is gitignored)
 requirements.txt       Python dependencies
 refresh.ps1            `./refresh`: refresh the SERVER's database from this laptop (see app/remote_refresh.py)
+install-refresh-link.ps1  one-time laptop setup: jobradar://refresh links run `./refresh --source workday`
 app/
   db.py                engine + SessionLocal (reads DATABASE_URL from .env)
   models.py            SQLAlchemy models = the schema
@@ -357,6 +358,14 @@ gets back only the fragment that changed.
   keep the URL in sync (`hx-push-url`).
 - **Refresh jobs** runs `run_refresh()` (the same code as the CLI), shows the counts, then
   triggers a `jobs-changed` event that reloads the list.
+  **On the server it's split in two** (`LAPTOP_REFRESH_SOURCES=workday`, set in
+  `docker-compose.prod.yml`): the server refreshes everything except Workday, and the same click
+  opens `jobradar://refresh`, which the laptop maps to `./refresh --source workday` in a
+  PowerShell window (registered once with `./install-refresh-link.ps1`). The page polls
+  `/refresh/laptop-status` every 5s and reloads the list when every Workday company has a fresh
+  success/error stamp (gives up after 10 minutes). Only works when clicked from the laptop;
+  on other devices only the server half runs. Per-company Refresh / add-by-hand skip Workday on
+  the server for the same reason.
 - **New badges:** cookies remember your last visit, and a visit more than 1 hour after the
   previous one moves the "new since" line forward.
 
@@ -411,6 +420,7 @@ pip install -r requirements.txt
 # Refresh the LIVE site's data (runs here, writes to the server's DB through an SSH tunnel)
 ./refresh                     # all companies (~60s)
 ./refresh --company micron    # one company
+./refresh --source workday    # one ATS (what the site's Refresh button runs on the laptop)
 
 # Data (these act on whichever DATABASE_URL is set: the laptop's DB by default)
 python -m app.seed_companies  # load/update the Treasure Valley company list (safe to re-run)
@@ -588,10 +598,7 @@ alembic check                 # do models and DB match? ("No new upgrade operati
   after a schema change** (it refuses otherwise). We deliberately don't disguise requests as a
   browser or rotate IPs to get around Cloudflare: that's evading a site's bot protection.
 - **Open items:**
-  1. **The website's Refresh button still runs on the server**, so its Workday companies fail
-     with 429s (other ATSes work). Options: skip Workday when running on the server, or hide the
-     button and rely on `./refresh`.
-  2. **Site hangs from some devices/networks.** Likely cause (found 2026-10-28): campus Wi-Fi
+  1. **Site hangs from some devices/networks.** Likely cause (found 2026-10-28): campus Wi-Fi
      rotates public IPs (`.17`, `.19`, ...), and the security group allows single addresses only.
      Options: allow `132.178.207.0/24`, or build login + read-only demo mode and open the site
      to everyone. If the phone still hangs on an allowed IP, test `http://portquiz.net:8000`

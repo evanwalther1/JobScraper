@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.connectors import CONNECTORS
 from app.models import Company, Job, Preference, Relevance, Source
 from app.refresh import run_refresh
-from app.web import get_session, not_found, templates
+from app.web import LAPTOP_REFRESH_SOURCES, get_session, not_found, templates
 
 router = APIRouter()
 
@@ -122,7 +122,7 @@ def toggle_active(request: Request, company_id: int, session: Session = Depends(
 
 @router.post("/companies/{company_id}/refresh", response_class=HTMLResponse)
 def refresh_one(request: Request, company_id: int, session: Session = Depends(get_session)):
-    run_refresh(company_ids=[company_id])
+    run_refresh(company_ids=[company_id], exclude_sources=LAPTOP_REFRESH_SOURCES or None)  # Workday: laptop only
     session.expire_all()  # the refresh wrote through other sessions
     return _row_response(request, session, company_id)
 
@@ -150,7 +150,9 @@ def add_company(
         return HTMLResponse(
             f'<article class="form-error">{source.value} / {ats_slug} is already tracked.</article>'
         )
-    result = run_refresh(company_ids=[company.id])[0]
+    # On the server, Workday companies aren't refreshed here (laptop only): result stays None.
+    results = run_refresh(company_ids=[company.id], exclude_sources=LAPTOP_REFRESH_SOURCES or None)
+    result = results[0] if results else None
     response = templates.TemplateResponse(request, "partials/company_added.html", {"name": company.name, "result": result})
     response.headers["HX-Trigger"] = "companies-changed"
     return response

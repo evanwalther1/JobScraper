@@ -202,9 +202,15 @@ def _sync_excluded(session, company, fetched, excluded, rejected, run_at) -> Non
     )
 
 
-def run_refresh(company_filter: str | None = None, company_ids: list[int] | None = None) -> list[dict]:
-    """Refresh every active company, or only those matching a name filter / list of IDs.
-    Used by the CLI and the web UI.
+def run_refresh(
+    company_filter: str | None = None,
+    company_ids: list[int] | None = None,
+    sources: set[str] | None = None,
+    exclude_sources: set[str] | None = None,
+) -> list[dict]:
+    """Refresh every active company, or only those matching a name filter / IDs / ATS sources.
+    Used by the CLI and the web UI. (On the server, the web UI excludes the sources that only
+    work from the laptop: see LAPTOP_REFRESH_SOURCES in app/main.py.)
 
     Returns one result dict per company: {"company", "ok", "error", and the refresh stats}.
     """
@@ -214,6 +220,10 @@ def run_refresh(company_filter: str | None = None, company_ids: list[int] | None
             query = query.where(Company.name.ilike(f"%{company_filter}%"))
         if company_ids is not None:
             query = query.where(Company.id.in_(company_ids))
+        if sources:
+            query = query.where(Company.source.in_(sources))
+        if exclude_sources:
+            query = query.where(Company.source.not_in(exclude_sources))
         companies = session.scalars(query).all()
 
     headers = {"User-Agent": "JobScraper personal job tracker", "Accept": "application/json"}
@@ -256,10 +266,11 @@ def _refresh_one(company: Company, client: httpx.Client) -> dict | None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Refresh job postings from company ATS boards.")
     parser.add_argument("--company", help="only refresh companies whose name contains this")
+    parser.add_argument("--source", action="append", help="only refresh companies on this ATS (repeatable)")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     logging.getLogger("httpx").setLevel(logging.WARNING)  # hide per-request lines
-    run_refresh(args.company)
+    run_refresh(args.company, sources=set(args.source) if args.source else None)
 
 
 if __name__ == "__main__":

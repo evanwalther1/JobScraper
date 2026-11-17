@@ -4,6 +4,7 @@ Used by app/main.py (jobs + applications pages) and the route modules for the
 Companies (app/routes_companies.py) and Radar (app/routes_radar.py) pages.
 """
 
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -16,6 +17,12 @@ from app.models import Status
 
 BASE = Path(__file__).parent
 templates = Jinja2Templates(directory=BASE / "templates")
+
+# ATS sources refreshed from the laptop instead of here. Set to "workday" on the server
+# (docker-compose.prod.yml): Workday's Cloudflare rate-limits the server's AWS IP. The Refresh
+# button then also opens jobradar://refresh, which the laptop maps to
+# `./refresh --source workday` (one-time setup: install-refresh-link.ps1).
+LAPTOP_REFRESH_SOURCES = {s.strip() for s in os.environ.get("LAPTOP_REFRESH_SOURCES", "").split(",") if s.strip()}
 
 # Statuses shown on the Applications page, in pipeline order.
 PIPELINE = [Status.SAVED, Status.APPLIED, Status.INTERVIEWING, Status.OFFER, Status.REJECTED, Status.WITHDRAWN]
@@ -58,3 +65,4 @@ def safe_html(raw: str | None) -> str:
 templates.env.filters["ago"] = ago
 templates.env.filters["safe_html"] = safe_html
 templates.env.globals["ALL_STATUSES"] = PIPELINE + [Status.DISMISSED]
+templates.env.globals["LAPTOP_REFRESH"] = bool(LAPTOP_REFRESH_SOURCES)

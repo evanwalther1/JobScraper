@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session, joinedload
 from app import routes_companies, routes_radar
 from app.models import Application, Company, Job, Preference, Relevance, Status
 from app.refresh import run_refresh
-from app.web import BASE, PIPELINE, get_session, is_htmx, not_found, templates
+from app.web import BASE, LAPTOP_REFRESH_SOURCES, PIPELINE, get_session, is_htmx, not_found, templates
 
 app = FastAPI(title="JobScraper")
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
@@ -27,6 +27,8 @@ app.include_router(routes_radar.router)
 
 # A visit this long after the previous one starts a new "session" for NEW badges.
 VISIT_GAP = timedelta(hours=1)
+
+LAPTOP_WAIT = timedelta(minutes=10)  # stop waiting for the laptop half after this
 
 
 # --- Jobs page -----------------------------------------------------------------
@@ -186,8 +188,9 @@ def delete_application(app_id: int, session: Session = Depends(get_session)):
 
 @app.post("/refresh", response_class=HTMLResponse)
 def refresh(request: Request):
-    """Runs the same refresh as `python -m app.refresh` (~20s)."""
-    results = run_refresh()
+    """Runs the same refresh as `python -m app.refresh`, minus the laptop's sources (if any)."""
+    started = datetime.now(timezone.utc)
+    results = run_refresh(exclude_sources=LAPTOP_REFRESH_SOURCES or None)
     ok = [r for r in results if r["ok"]]
     summary = {
         "ok": len(ok),
@@ -196,7 +199,33 @@ def refresh(request: Request):
         "closed": sum(r["closed"] for r in ok),
     }
     response = templates.TemplateResponse(
-        request, "partials/refresh_result.html", {"results": results, "summary": summary}
+        request, "partials/refresh_result.html",
+        {"results": results, "summary": summary, "laptop_since": started.isoformat() if LAPTOP_REFRESH_SOURCES else None},
     )
     response.headers["HX-Trigger"] = "jobs-changed"  # tells the job list to reload itself
+    return response
+
+
+@app.get("/refresh/laptop-status", response_class=HTMLResponse)
+def laptop_refresh_status(request: Request, since: str, session: Session = Depends(get_session)):
+    """Polled by the page after Refresh: has the laptop finished its companies yet?
+
+    "Finished" = every laptop-source company has a success or an error stamped since the click.
+    The stamps come from the laptop's clock, so allow 30s of clock difference.
+    """
+    clicked = datetime.fromisoformat(since)
+    cutoff = clicked - timedelta(seconds=30)
+    companies = session.scalars(
+        select(Company).where(Company.active, Company.source.in_(LAPTOP_REFRESH_SOURCES))
+    ).all()
+    ok = [c for c in companies if c.last_success_at and c.last_success_at >= cutoff]
+    failed = [c for c in companies if c not in ok and c.last_error_at and c.last_error_at >= cutoff]
+    done = len(ok) + len(failed) == len(companies)
+    context = {
+        "since": since, "ok": ok, "failed": failed, "total": len(companies), "done": done,
+        "timed_out": not done and datetime.now(timezone.utc) - clicked > LAPTOP_WAIT,
+    }
+    response = templates.TemplateResponse(request, "partials/laptop_status.html", context)
+    if done:
+        response.headers["HX-Trigger"] = "jobs-changed"
     return response
